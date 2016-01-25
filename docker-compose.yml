@@ -6,11 +6,11 @@ rethinkdb:
         - "29015"
 proxy:
     image: ehazlett/docker-proxy:latest
-    command: -D
     volumes:
         - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
         - "2375"
+    command: -D
 
 swarm:
     image: swarm:latest
@@ -28,27 +28,31 @@ media:
     working_dir: /go/src/github.com/shipyard/shipyard
     volumes:
         - "/go/src/github.com/shipyard/shipyard/controller/static"
+    environment:
+        - no_proxy=0.0.0.0,swarm,rethinkdb,media,proxy,authproxy,registry
+        - NO_PROXY=0.0.0.0,swarm,rethinkdb,media,proxy,authproxy,registry
 
 registry:
     image: registry:0.8.1
     volumes:
-        - /myregistry:/registry
+      - /var/registry:/registry
     ports:
-        - "80:5000"
+      - "80:5000"
     environment:
-        - "SETTINGS_FLAVOR=local"
-        - "SEARCH_BACKEND=sqlalchemy"
-        - "STORAGE_PATH=/registry"
+      - "SETTINGS_FLAVOR=local"
+      - "SEARCH_BACKEND=sqlalchemy"
+      - "STORAGE_PATH=/registry"
+
 authproxy:
     image: quay.io/aptible/registry-proxy
     links:
-        - registry
+      - registry
     ports:
-        - "443:443"
+      - "443:443"
     environment:
-        - AUTH_CREDENTIALS=admin:admin
-    volumes: 
-        - /home/andreea/external:/etc/nginx/ssl
+      - AUTH_CREDENTIALS=admin:admin
+    volumes:
+      - ./registry-assets/external:/etc/nginx/ssl
 
 controller:
     build: .
@@ -58,10 +62,14 @@ controller:
     links:
         - rethinkdb
         - swarm
+        - authproxy
         - registry
     volumes_from:
         - media
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
         - "8080:8080"
     environment:
-       - no_proxy=rethinkdb,swarm,media,controller,registry
+        - no_proxy=0.0.0.0,swarm,rethinkdb,media,proxy,authproxy,registry
+        - NO_PROXY=0.0.0.0,swarm,rethinkdb,media,proxy,authproxy,registry

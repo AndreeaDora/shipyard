@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"crypto/tls"
 
 	log "github.com/Sirupsen/logrus"
 	r "github.com/dancannon/gorethink"
@@ -694,7 +695,22 @@ func (m DefaultManager) Node(name string) (*shipyard.Node, error) {
 }
 
 func (m DefaultManager) AddRegistry(registry *shipyard.Registry) error {
-	resp, err := http.Get(fmt.Sprintf("%s/v1/search", registry.Addr))
+	// Build request
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/search", registry.Addr), nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(registry.Username, registry.Password)
+
+	// Create unsecured client 
+	trans := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{Transport: trans}
+
+	resp, err := client.Do(req)
+
 	if err != nil {
 		return err
 	}
@@ -739,7 +755,7 @@ func (m DefaultManager) Registries() ([]*shipyard.Registry, error) {
 
 	registries := []*shipyard.Registry{}
 	for _, r := range regs {
-		reg, err := shipyard.NewRegistry(r.ID, r.Name, r.Addr)
+		reg, err := shipyard.NewRegistry(r.ID, r.Name, r.Addr, r.Username, r.Password)
 		if err != nil {
 			return nil, err
 		}
@@ -764,7 +780,7 @@ func (m DefaultManager) Registry(name string) (*shipyard.Registry, error) {
 		return nil, err
 	}
 
-	registry, err := shipyard.NewRegistry(reg.ID, reg.Name, reg.Addr)
+	registry, err := shipyard.NewRegistry(reg.ID, reg.Name, reg.Addr, reg.Username, reg.Password)
 	if err != nil {
 		return nil, err
 	}
