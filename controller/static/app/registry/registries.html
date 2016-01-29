@@ -54,7 +54,7 @@
             <table class="ui sortable celled table">
                 <thead ng-hide="">
                     <tr>
-                        <th>Login</th>
+                        <th class="ui tooltip">Login Status</th>
                         <th>Name</th>
                         <th>Address</th>
                         <th></th>
@@ -84,6 +84,10 @@
         </div>
     </div>
 
+    <div class="ui custom popup top right transition hidden">
+        You have to login in order to be able to pull an image.
+    </div>
+
     <div class="row" ng-show="vm.registries.length > 0 && filteredContainers.length === 0">
         <div class="column">
             <div class="ui icon message">
@@ -101,4 +105,15 @@
 
 <script>
 $('.ui.sortable.celled.table').tablesort();
+$('.ui.tooltip')
+    .popup({
+        popup       : $('.custom.popup'),
+        inline      : true,
+        hoverable   : true,
+        position    : 'top right',
+        delay       : {
+            show    : 300,
+            hide    : 800,
+        }
+    });
 </script>
